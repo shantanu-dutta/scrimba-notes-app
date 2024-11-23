@@ -15,6 +15,7 @@ export default function App() {
   const [loadingState, setLoadingState] = React.useState(LoadingState.Loading);
   const [notes, setNotes] = React.useState([]);
   const [currentNoteId, setCurrentNoteId] = React.useState("");
+  const [tempNoteText, setTempNoteText] = React.useState("");
 
   const currentNote =
     notes.find((note) => note.id === currentNoteId) || notes[0];
@@ -34,36 +35,69 @@ export default function App() {
 
   React.useEffect(() => {
     if (!currentNoteId) {
+      console.log("updated current note id:", notes[0]?.id);
       setCurrentNoteId(notes[0]?.id);
     }
   }, [notes]);
 
+  React.useEffect(() => {
+    if (currentNote) {
+      setTempNoteText(currentNote.body);
+    }
+  }, [currentNote]);
+
+  React.useEffect(() => {
+    console.log("update note started...");
+    const timeoutId = setTimeout(() => {
+      if (tempNoteText === currentNote.body) {
+        console.log("note unchanged, not updating.");
+        return;
+      }
+      updateNote(tempNoteText);
+    }, 500);
+
+    return () => {
+      console.log("clearing update note timeout...");
+      clearTimeout(timeoutId);
+    };
+  }, [tempNoteText]);
+
   async function createNewNote() {
+    console.log("adding new note...");
     const newNote = {
       body: "# Type your markdown note's title here",
       createAt: Date.now(),
       updatedAt: Date.now(),
     };
     const newNoteRef = await addDoc(notesCollection, newNote);
+    console.log("new note added.");
     setCurrentNoteId(newNoteRef.id);
   }
 
   async function updateNote(text) {
+    console.log("updating note id:", currentNoteId);
     const noteRef = getNoteRef(currentNoteId);
     await setDoc(
       noteRef,
       { body: text, updatedAt: Date.now() },
       { merge: true }
     );
+    console.log("note updated.");
   }
 
   async function deleteNote(event, noteId) {
     event.stopPropagation();
+    console.log("deleting note id:", noteId);
     const noteRef = getNoteRef(noteId);
     await deleteDoc(noteRef);
+    console.log("note deleted.");
   }
 
-  
+  const sortedNotes = notes.toSorted((a, b) => b.updatedAt - a.updatedAt);
+  console.log("Sorted notes by update date: ", sortedNotes);
+
+  console.log("current note:", currentNote);
+  console.log("tempNoteText:", tempNoteText);
 
   return (
     <main>
@@ -75,13 +109,16 @@ export default function App() {
         notes.length > 0 ? (
           <Split sizes={[30, 70]} direction="horizontal" className="split">
             <Sidebar
-              notes={notes}
+              notes={sortedNotes}
               currentNote={currentNote}
               setCurrentNoteId={setCurrentNoteId}
               newNote={createNewNote}
               deleteNote={deleteNote}
             />
-            <Editor currentNote={currentNote} updateNote={updateNote} />
+            <Editor
+              tempNoteText={tempNoteText}
+              setTempNoteText={setTempNoteText}
+            />
           </Split>
         ) : (
           <div className="no-notes">
