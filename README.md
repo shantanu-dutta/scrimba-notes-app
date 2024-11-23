@@ -1,4 +1,4 @@
-# coc5742aba9d8579a290d5cdc
+# Scrimba React Notes App
 
 Warning: Vite enforces using jsx syntax inside jsx/tsx files, so it will complain about that. Solution: rename `.js` files to `.jsx` :)
 
